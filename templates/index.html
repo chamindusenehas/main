@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Score Bar Chart</title>
+
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+    <h2>Live Score...</h2>
+    <canvas id="scoreChart" width="400" height="200"></canvas>
+
+    <script>
+        const ctx = document.getElementById('scoreChart').getContext('2d');
+        let scoreChart;
+
+       
+        const scientificColors = [
+            'rgba(118, 199, 192, 0.7)', 
+            'rgba(72, 133, 237, 0.7)', 
+            'rgba(88, 86, 214, 0.7)',  
+            'rgba(123, 237, 159, 0.7)', 
+            'rgba(240, 147, 43, 0.7)',  
+            'rgba(235, 59, 90, 0.7)',   
+            'rgba(165, 94, 234, 0.7)',  
+            'rgba(75, 101, 132, 0.7)'   
+        ];
+
+        
+        function getColorByIndex(index) {
+            return scientificColors[index % scientificColors.length];
+        }
+
+        function fetchScoresAndUpdateChart() {
+            fetch("/scores")
+                .then(response => response.json())
+                .then(data => {
+                    const labels = data.map(player => player.name);
+                    const scores = data.map(player => player.score);
+                    const colors = data.map((_, index) => getColorByIndex(index)); 
+
+                    if (!scoreChart) {
+                        
+                        scoreChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Player Scores',
+                                    data: scores,
+                                    backgroundColor: colors, 
+                                    borderColor: colors.map(color => color.replace("0.7", "1")), 
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        grid: { color: "#333" },
+                                        ticks: { color: "red",
+                                            font: { size: 20 }
+                                         },
+                                        title: {
+                                            display: false,
+                                            text: 'Score',
+                                            color: '#e0e0e0', 
+                                            font: { size: 36 }
+                                        }
+                                    },
+                                    x: {
+                                        ticks: { 
+                                            color:"blue",
+                                            font: { size: 20 }
+                                         },
+                                        title: {
+                                            display: false,
+                                            text: 'Player Name',
+                                            color: '#e0e0e0',
+                                            font: { size: 36 }
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    legend :{
+                                        display: false
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        
+                        scoreChart.data.labels = labels;
+                        scoreChart.data.datasets[0].data = scores;
+                        scoreChart.data.datasets[0].backgroundColor = colors;
+                        scoreChart.data.datasets[0].borderColor = colors.map(color => color.replace("0.7", "1"));
+                        scoreChart.update();
+                    }
+                })
+                .catch(error => console.error("Error fetching scores:", error));
+        }
+
+        
+        setInterval(fetchScoresAndUpdateChart, 1000);
+    </script>
+</body>
+</html>
